@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, Boolean, ForeignKey, DateTime, func, Table
+from sqlalchemy import BigInteger, Column, Integer, String, Text, Boolean, ForeignKey, DateTime, func, Table
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm import DeclarativeBase
 
@@ -81,6 +81,8 @@ class BotToken(BaseModel):
     id = Column(Integer, primary_key=True)
     name = Column(String(255), nullable=False, unique=True, comment="Название или описание бота")
     token = Column(String(255), nullable=False, unique=True, comment="Токен Telegram-бота")
+    telegram_bot_id = Column(BigInteger, nullable=True, unique=True, comment="ID Telegram бота")
+    bot_username = Column(String(100), nullable=True, comment="Юзернейм Telegram бота")
     is_active = Column(Boolean, default=True, comment="Активен ли бот")
     owner_name = Column(String(255), nullable=False, comment="ФИО владельца бота")
     owner_telegram_username = Column(String(100), nullable=True, comment="Никнейм владельца в Telegram")
