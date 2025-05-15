@@ -71,11 +71,3 @@ def create_main_dialog() -> Dialog:
         launch_mode=LaunchMode.ROOT,
     )
 
-
-# # Registrar function
-# from aiogram import Dispatcher
-# from aiogram_dialog.manager import DialogRegistry
-
-# def register_main_dialog(dp: Dispatcher):
-#     registry = DialogRegistry(dp)
-#     registry.register(create_main_dialog())
