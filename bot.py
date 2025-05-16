@@ -11,19 +11,16 @@ from aiogram.utils.markdown import html_decoration as fmt
 from aiogram.utils.token import TokenValidationError
 from sqlalchemy import select, update, func
 from bot_dialogs import states
+from db_utils.utils import get_tokens
 from models import BotToken
-
+from bot_dialogs.tests import test_dialog
 from sqlalchemy import Integer, String
 from db import AsyncSessionLocal
 from polling_manager import PollingManager
 
 logger = logging.getLogger(__name__)
 
-async def get_tokens():
-    """Fetch active bot tokens from the database."""
-    async with AsyncSessionLocal() as session:
-        result = await session.execute(select(BotToken).where(BotToken.is_active == True))
-        return [bt.token for bt in result.scalars().all()]
+
 
 
 async def set_commands(bot: Bot):
@@ -56,8 +53,21 @@ async def bye(message: types.Message, bot: Bot):
 
 def setup_handlers(dp: Dispatcher, polling_manager: PollingManager, bot: Bot):
     from aiogram_dialog import DialogManager, StartMode
+    from db_utils.utils import get_or_create_user
+    from db import AsyncSessionLocal
 
     async def start_dialog_handler(message: types.Message, dialog_manager: DialogManager):
+        async with AsyncSessionLocal() as session:
+            await get_or_create_user(
+                session=session,
+                telegram_id=message.from_user.id,
+                telegram_bot_id=message.bot.id,
+                telegram_data={
+                    "username": message.from_user.username,
+                    "first_name": message.from_user.first_name,
+                    "last_name": message.from_user.last_name,
+                }
+            )
         await dialog_manager.start(states.Main.MAIN, mode=StartMode.RESET_STACK)
 
     dp.message.register(start_dialog_handler, Command(commands="start"))
@@ -122,7 +132,11 @@ async def main():
     dp = Dispatcher(events_isolation=SimpleEventIsolation())
 
     from bot_dialogs.main import create_main_dialog
-    dp.include_routers(create_main_dialog())
+    dp.include_routers(create_main_dialog(), test_dialog)
+
+    # Регистрация тестового диалога
+    
+    # dp.include_router(test_dialog)
 
     bots = [Bot(token) for token in tokens]
 

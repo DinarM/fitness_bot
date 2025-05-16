@@ -1,4 +1,4 @@
-from sqlalchemy import BigInteger, Column, Integer, String, Text, Boolean, ForeignKey, DateTime, func, Table
+from sqlalchemy import BigInteger, Column, Integer, String, Text, Boolean, ForeignKey, DateTime, func, Table, select
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm import DeclarativeBase
 
@@ -50,15 +50,12 @@ class User(BaseModel):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True)
-    email = Column(String(255))
-    password_hash = Column(String(255))
     name = Column(String(255))
     telegram_username = Column(String(100))
-    age = Column(Integer)
-    gender = Column(String(10))
-    height = Column(Integer)
-    weight = Column(Integer)
-
+    telegram_id = Column(BigInteger, nullable=False, unique=True, comment="ID Telegram пользователя")
+    is_active = Column(Boolean, default=True, comment="Активен ли пользователь")
+    is_admin = Column(Boolean, default=False, comment="Является ли пользователь администратором")
+    
     answers = relationship("TestUserAnswer", back_populates="user")
     bots = relationship("BotToken", secondary=user_bots, back_populates="users")
 

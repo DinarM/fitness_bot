@@ -15,7 +15,7 @@ class Main(StatesGroup):
     MAIN = State()
 
 
-class Layouts(StatesGroup):
+class Tests(StatesGroup):
     MAIN = State()
     ROW = State()
     COLUMN = State()

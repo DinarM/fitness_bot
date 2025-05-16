@@ -1,13 +1,7 @@
 from aiogram_dialog import Dialog, LaunchMode, Window
-from aiogram_dialog.about import about_aiogram_dialog_button
-from aiogram_dialog.widgets.kbd import Start
+from aiogram_dialog.widgets.kbd import Start, Row
 from aiogram_dialog.widgets.text import Const, Format
-from aiogram_dialog.widgets.kbd import (
-    RequestContact,
-    Row,
-)
 from aiogram_dialog.widgets.markup.reply_keyboard import ReplyKeyboardFactory
-# from handlers.start_dialog import on_contact
 
 from . import states
 
@@ -15,59 +9,32 @@ from . import states
 def create_main_dialog() -> Dialog:
     return Dialog(
         Window(
-            Const("👋 Добро пожаловать!"),
-            Const("Для начала поделитесь своим контактом, чтобы тренер мог понять с кем работает."),
-            Const("После этого вы сможете начать тестирование или тренировки."),
+            Format("👋 Привет, {event.from_user.first_name}!"),
+            Const(
+                "Я твой персональный бот-тренер 🤖💪\n"
+                "Помогу оценить твой уровень, поставить цели и подобрать эффективные тренировки.\n\n"
+                "📌 Чтобы начать, пройди первичное тестирование — нажми кнопку <b>📝 Тестирование</b> ниже.\n"
+                "Это поможет мне понять, какие упражнения подойдут именно тебе.\n\n"
+                "🗂 Индивидуальную программу ты найдешь в разделе <b>🏋️‍♂️ Тренировки</b>."
+                ),
             Row(
-                RequestContact(Const("👤 Send contact")),
+                Start(
+                    text=Const("📝 Тестирование"),
+                    id="test",
+                    state=states.Tests.MAIN,  # или другой state, если он у тебя для теста
+                ),
+                Start(
+                    text=Const("🏋️‍♂️ Тренировки"),
+                    id="training",
+                    state=states.Multiwidget.MAIN,  # или нужный state для тренировок
+                ),
             ),
-            Start(
-                text=Const("📜 Scrolling widgets"),
-                id="scrolls",
-                state=states.Scrolls.MAIN,
-            ),
-            Start(
-                text=Const("☑️ Selection widgets"),
-                id="selects",
-                state=states.Selects.MAIN,
-            ),
-            Start(
-                text=Const("📅 Calendar"),
-                id="cal",
-                state=states.Calendar.MAIN,
-            ),
-            Start(
-                text=Const("💯 Counter and Progress"),
-                id="counter",
-                state=states.Counter.MAIN,
-            ),
-            Start(
-                text=Const("🎛 Combining widgets"),
-                id="multiwidget",
-                state=states.Multiwidget.MAIN,
-            ),
-            Start(
-                text=Const("🔢 Multiple steps"),
-                id="switch",
-                state=states.Switch.MAIN,
-            ),
-            Start(
-                text=Const("🔗 Link Preview"),
-                id="linkpreview",
-                state=states.LinkPreview.MAIN,
-            ),
-            Start(
-                text=Const("⌨️ Reply keyboard"),
-                id="reply",
-                state=states.ReplyKeyboard.MAIN,
-            ),
-            about_aiogram_dialog_button(),
-            markup_factory=ReplyKeyboardFactory(
-                input_field_placeholder=Format("{event.from_user.username}"),
-                resize_keyboard=True,
-            ),
+            # markup_factory=ReplyKeyboardFactory(
+            #     input_field_placeholder=Format("{event.from_user.username}"),
+            #     resize_keyboard=True,
+            # ),
             state=states.Main.MAIN,
+            parse_mode="HTML",
         ),
         launch_mode=LaunchMode.ROOT,
     )
-
