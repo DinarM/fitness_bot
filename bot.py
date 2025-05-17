@@ -2,7 +2,7 @@ import asyncio
 import logging
 from typing import List
 
-from aiogram import Bot, Dispatcher, types
+from aiogram import Bot, Dispatcher, types, Router
 from aiogram.filters.command import Command, CommandObject
 from aiogram.fsm.storage.memory import SimpleEventIsolation
 from aiogram.exceptions import TelegramUnauthorizedError
@@ -17,6 +17,12 @@ from bot_dialogs.tests import test_dialog
 from sqlalchemy import Integer, String
 from db import AsyncSessionLocal
 from polling_manager import PollingManager
+from aiogram_dialog import DialogManager, StartMode, ShowMode
+from aiogram.fsm.storage.memory import MemoryStorage
+
+from bot_dialogs.select import selects_dialog
+from bot_dialogs.main import main_dialog
+from bot_dialogs.tests import test_dialog
 
 logger = logging.getLogger(__name__)
 
@@ -42,8 +48,14 @@ async def set_commands(bot: Bot):
     await bot.set_my_commands(commands=commands, scope=BotCommandScopeDefault())
 
 
-async def echo(message: types.Message):
-    await message.answer(message.text)
+
+dialog_router = Router()
+dialog_router.include_routers(
+
+    main_dialog,
+    test_dialog,
+    selects_dialog,
+)
 
 
 async def bye(message: types.Message, bot: Bot):
@@ -52,11 +64,12 @@ async def bye(message: types.Message, bot: Bot):
 
 
 def setup_handlers(dp: Dispatcher, polling_manager: PollingManager, bot: Bot):
-    from aiogram_dialog import DialogManager, StartMode
+
     from db_utils.utils import get_or_create_user
     from db import AsyncSessionLocal
 
     async def start_dialog_handler(message: types.Message, dialog_manager: DialogManager):
+        print(f"Команда /start получена от пользователя: {message.from_user.id}")
         async with AsyncSessionLocal() as session:
             await get_or_create_user(
                 session=session,
@@ -68,7 +81,7 @@ def setup_handlers(dp: Dispatcher, polling_manager: PollingManager, bot: Bot):
                     "last_name": message.from_user.last_name,
                 }
             )
-        await dialog_manager.start(states.Main.MAIN, mode=StartMode.RESET_STACK)
+        await dialog_manager.start(states.Main.MAIN, mode=StartMode.RESET_STACK, show_mode=ShowMode.SEND,)
 
     dp.message.register(start_dialog_handler, Command(commands="start"))
     dp.message.register(bye, Command(commands="bye"))
@@ -129,11 +142,11 @@ async def main():
         return
 
     polling_manager = PollingManager()
-    dp = Dispatcher(events_isolation=SimpleEventIsolation())
+    dp = Dispatcher(storage=MemoryStorage(), events_isolation=SimpleEventIsolation()) 
 
-    from bot_dialogs.main import create_main_dialog
-    dp.include_routers(create_main_dialog(), test_dialog)
-
+    # from bot_dialogs.main import create_main_dialog
+    # dp.include_routers(create_main_dialog(), test_dialog)
+    dp.include_router(dialog_router)
     # Регистрация тестового диалога
     
     # dp.include_router(test_dialog)
@@ -151,7 +164,8 @@ async def main():
         except Exception as e:
             logger.error(f"Ошибка при инициализации бота {bot.token[:8]}...: {str(e)}")
 
-    await asyncio.Event().wait()
+    while True:
+        await asyncio.sleep(1) 
 
 if __name__ == "__main__":
     try:

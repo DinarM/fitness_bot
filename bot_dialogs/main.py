@@ -2,12 +2,24 @@ from aiogram_dialog import Dialog, LaunchMode, Window
 from aiogram_dialog.widgets.kbd import Start, Row
 from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.widgets.markup.reply_keyboard import ReplyKeyboardFactory
+from aiogram_dialog.widgets.kbd import Button
 
+from bot_dialogs.tests import on_click_test_type
 from . import states
+from aiogram_dialog.about import about_aiogram_dialog_button
+from aiogram.types import CallbackQuery
+from aiogram_dialog import DialogManager, StartMode
 
+async def on_click_test_start(callback: CallbackQuery, button, manager: DialogManager):
+    print("🌀 📝 Тестирование нажата")
+    # Запускаем тестовый диалог вручную
+    await manager.start(states.Tests.MAIN, mode=StartMode.RESET_STACK)
+    # Подтверждаем получение нажатия
+    await callback.answer()
 
-def create_main_dialog() -> Dialog:
-    return Dialog(
+# def create_main_dialog() -> Dialog:
+#     return Dialog(
+main_dialog = Dialog(
         Window(
             Format("👋 Привет, {event.from_user.first_name}!"),
             Const(
@@ -21,20 +33,28 @@ def create_main_dialog() -> Dialog:
                 Start(
                     text=Const("📝 Тестирование"),
                     id="test",
-                    state=states.Tests.MAIN,  # или другой state, если он у тебя для теста
+                    state=states.Tests.MAIN,
+                    on_click=on_click_test_start,
                 ),
                 Start(
                     text=Const("🏋️‍♂️ Тренировки"),
                     id="training",
                     state=states.Multiwidget.MAIN,  # или нужный state для тренировок
                 ),
+                Start(
+                    text=Const("☑️ Selection widgets"),
+                    id="selects",
+                    state=states.Selects.MAIN,
+                    on_click=on_click_test_type,
+                ),
             ),
             # markup_factory=ReplyKeyboardFactory(
             #     input_field_placeholder=Format("{event.from_user.username}"),
             #     resize_keyboard=True,
             # ),
+            about_aiogram_dialog_button(),
             state=states.Main.MAIN,
-            parse_mode="HTML",
+            # parse_mode="HTML",
         ),
         launch_mode=LaunchMode.ROOT,
     )

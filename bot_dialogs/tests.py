@@ -1,5 +1,3 @@
-
-
 from aiogram_dialog import Dialog, Window
 from aiogram_dialog.widgets.kbd import Select
 from aiogram_dialog.widgets.text import Const, Format
@@ -11,8 +9,17 @@ from models import TestType, BotToken
 
 from . import states
 
+from aiogram_dialog import DialogManager, StartMode
+
+async def on_start_tests(dialog_manager: DialogManager, **kwargs):
+    print("✅ Вход в диалог тестирования")
+
+async def on_click_test_type(callback, select, manager):
+    print(f"➡️ Выбран пункт: {callback.data}")
+    await callback.message.answer(f"Вы выбрали тест: {callback.data}")
 
 async def get_test_types(dialog_manager, **kwargs):
+    print(f"вызов get_test_types с аргументами: {kwargs}")
     async with AsyncSessionLocal() as session:
         telegram_bot_id = dialog_manager.event.bot.id
         result = await session.execute(
@@ -39,9 +46,10 @@ test_selection_window = Window(
         id="test_type_select",
         item_id_getter=lambda item: item["id"],
         items="test_types",
-        on_click=lambda c, s, m: c.message.answer(f"Вы выбрали тест: {c.data}"),
+        on_click=on_click_test_type,
     ),
     getter=get_test_types,
+    # on_start=on_start_tests,
     state=states.Tests.MAIN,
 )
 
