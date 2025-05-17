@@ -52,7 +52,7 @@ main_dialog = Dialog(
             #     input_field_placeholder=Format("{event.from_user.username}"),
             #     resize_keyboard=True,
             # ),
-            about_aiogram_dialog_button(),
+            # about_aiogram_dialog_button(),
             state=states.Main.MAIN,
             # parse_mode="HTML",
         ),
