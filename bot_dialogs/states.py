@@ -60,3 +60,7 @@ class LinkPreview(StatesGroup):
     SMALL_MEDIA = State()
     LARGE_MEDIA = State()
     SHOW_ABOVE_TEXT = State()
+
+class TestsSG(StatesGroup):
+    MAIN = State()      # выбор типа теста
+    QUESTION = State() 

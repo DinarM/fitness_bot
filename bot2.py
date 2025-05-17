@@ -80,7 +80,7 @@ def setup_dp():
 async def main():
     # real main
     logging.basicConfig(level=logging.INFO)
-    bot = Bot(token=os.getenv("BOT_TOKEN"))
+    bot = Bot(token=os.getenv("BOT_TOKEN2"))
     dp = setup_dp()
     await dp.start_polling(bot)
 

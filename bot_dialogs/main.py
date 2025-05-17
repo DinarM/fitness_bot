@@ -4,7 +4,6 @@ from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.widgets.markup.reply_keyboard import ReplyKeyboardFactory
 from aiogram_dialog.widgets.kbd import Button
 
-from bot_dialogs.tests import on_click_test_type
 from . import states
 from aiogram_dialog.about import about_aiogram_dialog_button
 from aiogram.types import CallbackQuery
@@ -34,7 +33,6 @@ main_dialog = Dialog(
                     text=Const("📝 Тестирование"),
                     id="test",
                     state=states.Tests.MAIN,
-                    on_click=on_click_test_start,
                 ),
                 Start(
                     text=Const("🏋️‍♂️ Тренировки"),
@@ -45,7 +43,6 @@ main_dialog = Dialog(
                     text=Const("☑️ Selection widgets"),
                     id="selects",
                     state=states.Selects.MAIN,
-                    on_click=on_click_test_type,
                 ),
             ),
             # markup_factory=ReplyKeyboardFactory(
@@ -54,7 +51,7 @@ main_dialog = Dialog(
             # ),
             # about_aiogram_dialog_button(),
             state=states.Main.MAIN,
-            # parse_mode="HTML",
+            parse_mode="HTML",
         ),
         launch_mode=LaunchMode.ROOT,
     )

@@ -83,3 +83,18 @@ async def update_bot_info(bot: Bot, session: AsyncSessionLocal) -> bool:
         # logger.error(f"Ошибка при обновлении информации бота: {str(e)}")
         await session.rollback()
         return False
+    
+
+async def get_test_types(dialog_manager, **kwargs):
+    async with AsyncSessionLocal() as session:
+        bot_id = await get_bot_id_by_telegram_id(session, dialog_manager.event.bot.id)
+
+        test_types_result = await session.execute(
+            select(TestType).where(TestType.bot_id == bot_id)
+        )
+        test_types = test_types_result.scalars().all()
+        return {
+            "test_types": [
+                {"id": str(tt.id), "name": tt.name} for tt in test_types
+            ]
+        }
