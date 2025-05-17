@@ -56,7 +56,7 @@ async def main():
 
     for bot in bots:
         try:
-            # await bot.get_updates(offset=-1)
+            await bot.get_updates(offset=-1)
             setup_handlers(dp, polling_manager, bot)
             async with AsyncSessionLocal() as session:
                 polling_manager.start_bot_polling(dp=dp, bot=bot)
