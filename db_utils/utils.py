@@ -4,6 +4,7 @@ from db import AsyncSessionLocal
 from aiogram import Bot, Dispatcher, types, Router, F
 from aiogram_dialog import DialogManager, StartMode, ShowMode
 from bot_dialogs import states
+from sqlalchemy import true, null
 
 async def get_bot_id_by_telegram_id(session, telegram_bot_id: int) -> int:
     bot_stmt = select(BotToken).where(BotToken.telegram_bot_id == telegram_bot_id)
@@ -90,7 +91,10 @@ async def get_test_types(dialog_manager, **kwargs):
         bot_id = await get_bot_id_by_telegram_id(session, dialog_manager.event.bot.id)
 
         test_types_result = await session.execute(
-            select(TestType).where(TestType.bot_id == bot_id)
+            select(TestType).where(TestType.bot_id == bot_id,
+                TestType.is_active == true(),
+                TestType.deleted_at.is_(None)
+                )
         )
         test_types = test_types_result.scalars().all()
         return {

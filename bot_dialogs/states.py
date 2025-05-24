@@ -63,4 +63,7 @@ class LinkPreview(StatesGroup):
 
 class TestsSG(StatesGroup):
     MAIN = State()      # выбор типа теста
-    QUESTION = State() 
+    START_WINDOW = State() 
+    TEXT_TYPE_WINDOW = State()
+    SINGLE_CHOICE_TYPE_WINDOW = State()
+    QUESTION = State()
