@@ -6,7 +6,6 @@ from app.handlers.main_handlers import on_click_test_start
 from app.dialogs import states
 
 
-
 main_dialog = Dialog(
         Window(
             Format("👋 Привет, {event.from_user.first_name}!"),
