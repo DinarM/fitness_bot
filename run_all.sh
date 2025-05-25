@@ -1,4 +1,6 @@
 #!/bin/bash
-python bot.py &
-python bot2.py &
+export PYTHONPATH=$(pwd)
+
+python -m app.bots.bot &
+python -m app.bots.bot2 &
 wait

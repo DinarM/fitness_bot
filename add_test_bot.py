@@ -1,7 +1,7 @@
 import asyncio
 import json
-from db import AsyncSessionLocal
-from models import BotToken, TestType, TestQuestion
+from app.db.database import AsyncSessionLocal
+from app.db.models import BotToken, TestType, TestQuestion
 from sqlalchemy import select
 
 async def add_test_bot():

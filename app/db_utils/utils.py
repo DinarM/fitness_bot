@@ -1,9 +1,9 @@
 from sqlalchemy import select, update, func
-from models import User, TestType, TestQuestion, TestUserAnswer, BotToken, user_bots
-from db import AsyncSessionLocal
+from app.db.models import User, TestType, TestQuestion, TestUserAnswer, BotToken, user_bots
+from app.db.database import AsyncSessionLocal
 from aiogram import Bot, Dispatcher, types, Router, F
 from aiogram_dialog import DialogManager, StartMode, ShowMode
-from bot_dialogs import states
+from app.dialogs import states
 from sqlalchemy import true, null
 
 async def get_bot_id_by_telegram_id(session, telegram_bot_id: int) -> int:

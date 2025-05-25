@@ -7,11 +7,11 @@ from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import ExceptionTypeFilter
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import ErrorEvent, Message, ReplyKeyboardRemove
-from bot_dialogs import states
-from bot_dialogs.main import main_dialog
-from bot_dialogs.select import selects_dialog
-from bot_dialogs.tests import test_dialog
-from bot_dialogs.tests_flow import tests_dialog
+from app.dialogs import states
+from app.dialogs.main_dialog import main_dialog
+from app.dialogs.select import selects_dialog
+from app.dialogs.tests import test_dialog
+from app.dialogs.tests_flow import tests_dialog
 
 from aiogram_dialog import DialogManager, ShowMode, StartMode, setup_dialogs
 from aiogram_dialog.api.exceptions import UnknownIntent
@@ -80,7 +80,7 @@ def setup_dp():
 async def main():
     # real main
     logging.basicConfig(level=logging.INFO)
-    bot = Bot(token=os.getenv("BOT_TOKEN2"))
+    bot = Bot(token=os.getenv("BOT_TOKEN"))
     dp = setup_dp()
     await dp.start_polling(bot)
 

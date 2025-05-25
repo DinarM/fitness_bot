@@ -4,9 +4,9 @@ from aiogram_dialog.widgets.text import Const, Format
 from aiogram.fsm.state import State, StatesGroup
 
 from sqlalchemy import select
-from db import AsyncSessionLocal
-from db_utils.utils import get_test_types
-from models import TestType, BotToken
+from app.db.database import AsyncSessionLocal
+from app.db_utils.utils import get_test_types
+from app.db.models import TestType, BotToken
 
 from . import states
 

@@ -4,8 +4,8 @@ from aiogram_dialog import Dialog, Window, DialogManager, StartMode, ShowMode
 from aiogram_dialog.widgets.kbd import Button
 from aiogram_dialog.widgets.text import Format, Const
 from sqlalchemy import select
-from db import AsyncSessionLocal
-from models import TestQuestion, TestType, TestUserAnswer, TestAnswer
+from app.db.database import AsyncSessionLocal
+from app.db.models import TestQuestion, TestType, TestUserAnswer, TestAnswer
 from .states import TestsSG
 from aiogram.types import CallbackQuery, Message
 from aiogram_dialog import DialogManager, ShowMode, StartMode
@@ -125,14 +125,14 @@ async def single_choice_type_getter(dialog_manager: DialogManager, **kwargs):
         "question_number": dialog_manager.dialog_data["question_number"],
     }
 
-async def on_choice_handler_function(callback: CallbackQuery, select_widget, dialog_manager: DialogManager, item: dict):
+async def on_choice_handler_function(callback: CallbackQuery, select_widget, dialog_manager: DialogManager, item_id: int):
     answers = dialog_manager.dialog_data.get("test_user_answer", {})
     question_ids = dialog_manager.dialog_data.get("question_ids", [])
     index = dialog_manager.dialog_data.get("current_index", 0)
     
     if question_ids and index < len(question_ids):
         question_id = question_ids[index]
-        answers[question_id] = item["name"]
+        answers[question_id] = item_id
         dialog_manager.dialog_data["test_user_answer"] = answers
         dialog_manager.dialog_data["current_index"] += 1
         dialog_manager.dialog_data["question_number"] += 1
