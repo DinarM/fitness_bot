@@ -10,8 +10,8 @@ from aiogram.types import ErrorEvent, Message, ReplyKeyboardRemove
 from app.dialogs import states
 from app.dialogs.main_dialog import main_dialog
 from app.dialogs.select_test_dialog import test_dialog
-from app.dialogs.tests_flow import tests_dialog
-from app.repo import user_repo
+from app.dialogs.tests_flow_dialog import tests_dialog
+from app.repo import user_repo, bot_repo
 
 from aiogram_dialog import DialogManager, ShowMode, StartMode, setup_dialogs
 from aiogram_dialog.api.exceptions import UnknownIntent
@@ -91,6 +91,7 @@ async def main():
     bot = Bot(token=os.getenv("BOT_TOKEN"))
     dp = setup_dp()
     await dp.start_polling(bot)
+    await bot_repo.update_bot_info(bot)
 
 
 if __name__ == "__main__":

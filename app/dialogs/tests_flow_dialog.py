@@ -6,6 +6,8 @@ from aiogram_dialog.widgets.text import Format, Const
 from sqlalchemy import select
 from app.db.database import AsyncSessionLocal
 from app.db.models import TestQuestion, TestType, TestUserAnswer, TestAnswer
+from app.getters.test_flow_getters import start_test_getter
+from app.handlers.test_flow_handlers import start_test
 from .states import TestsSG
 from aiogram.types import CallbackQuery, Message
 from aiogram_dialog import DialogManager, ShowMode, StartMode
@@ -13,45 +15,31 @@ from aiogram.enums import ContentType
 from aiogram_dialog.widgets.input import TextInput, ManagedTextInput, MessageInput
 from aiogram_dialog.widgets.kbd import Select
 
-async def test_type_getter(dialog_manager: DialogManager, **kwargs):
-    async with AsyncSessionLocal() as session:
-        res = await session.execute(
-            select(TestType).where(
-                TestType.id == int(dialog_manager.start_data.get('test_type_id'))
-            )
-        )
-        test_type = res.scalars().first()
-        print(f"Test type: {test_type} id {int(dialog_manager.start_data.get('test_type_id'))}")
-    return {
-        "description": test_type.description,
-        "name": test_type.name,
-        "estimated_duration": test_type.estimated_duration,
 
-    }
 
-async def start_test(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
-    test_type_id = int(dialog_manager.start_data.get('test_type_id'))
-    async with AsyncSessionLocal() as session:
-        res = await session.execute(
-            select(TestQuestion).where(
-                TestQuestion.test_type_id == test_type_id,
-                TestQuestion.is_active == True
-            ).order_by(TestQuestion.order)
-        )
-        questions = res.scalars().all()
-        # dialog_manager.start_data.clear()
-    dialog_manager.dialog_data.update({
-        "question_ids": [q.id for q in questions],
-        "test_user_answer": {},
-        "current_index": 0,
-        "question_number": 1,
-    })
+# async def start_test(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
+#     test_type_id = int(dialog_manager.start_data.get('test_type_id'))
+#     async with AsyncSessionLocal() as session:
+#         res = await session.execute(
+#             select(TestQuestion).where(
+#                 TestQuestion.test_type_id == test_type_id,
+#                 TestQuestion.is_active == True
+#             ).order_by(TestQuestion.order)
+#         )
+#         questions = res.scalars().all()
+#         # dialog_manager.start_data.clear()
+#     dialog_manager.dialog_data.update({
+#         "question_ids": [q.id for q in questions],
+#         "test_user_answer": {},
+#         "current_index": 0,
+#         "question_number": 1,
+#     })
   
-    if questions and questions[0].question_type == "text":
-        await dialog_manager.switch_to(TestsSG.TEXT_TYPE_WINDOW)
-    elif questions and questions[0].question_type == "single_choice":
-        await dialog_manager.switch_to(TestsSG.SINGLE_CHOICE_TYPE_WINDOW)
-        # return
+    # if questions and questions[0].question_type == "text":
+    #     await dialog_manager.switch_to(TestsSG.TEXT_TYPE_WINDOW)
+    # elif questions and questions[0].question_type == "single_choice":
+    #     await dialog_manager.switch_to(TestsSG.SINGLE_CHOICE_TYPE_WINDOW)
+    #     # return
 
 async def text_type_getter(dialog_manager: DialogManager, **kwargs):
     async with AsyncSessionLocal() as session:
@@ -155,12 +143,12 @@ async def on_choice_handler_function(callback: CallbackQuery, select_widget, dia
             await callback.message.answer("Тест завершен!")
             # await dialog_manager.start(TestsSG.RESULT_WINDOW)
 
-question_window = Window(
+start_test_window = Window(
         Format('<b>{name}!</b>\n'),
         Format('<b>{description}!</b>\n'),
         Format('<b>Займет времени: {estimated_duration}!</b>\n', when=lambda data, *_: data.get('estimated_duration') is not None),
         Button(Const('Начать тестирование ▶️'), id='b_next', on_click=start_test),
-        getter=test_type_getter,
+        getter=start_test_getter,
         state=TestsSG.START_WINDOW,
         parse_mode="HTML",
     )
@@ -193,7 +181,7 @@ single_choice_type_dialog = Window(
 
 
 tests_dialog = Dialog(
-    question_window,
+    start_test_window,
     text_type_dialog,
     single_choice_type_dialog,
 )

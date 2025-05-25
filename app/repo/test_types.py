@@ -1,9 +1,8 @@
-from sqlalchemy import select, true
 from app.db.models import TestType
 from app.repo.base import BaseRepo, with_session
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional, List
-from app.repo.bot import bot_repo
+from app.repo.bot_token import bot_repo
 
 class TestTypesRepo(BaseRepo):
     @with_session
@@ -22,11 +21,10 @@ class TestTypesRepo(BaseRepo):
         Returns:
             List[TestType]: Список типов тестов
         """
-        filters = {'bot_id': bot_id}
+        filters = {'bot_id': bot_id, 'deleted_at': None}
         if only_active:
             filters.update({
-                'is_active': True,
-                'deleted_at': None
+                'is_active': True
             })
         return await self.get_multi_by_field(session=session, **filters)
 
@@ -48,6 +46,22 @@ class TestTypesRepo(BaseRepo):
         """
         bot_id = await bot_repo.get_id_by_telegram_id(telegram_bot_id, session=session)
         return await self.get_by_bot(bot_id, only_active, session=session)
+    
+    @with_session
+    async def get_by_id(
+        self, 
+        test_type_id: int,
+        session: Optional[AsyncSession] = None
+    ) -> Optional[TestType]:
+        """
+        Получает тип теста по его ID
+        Args:
+            test_type_id: ID типа теста
+            session: Опциональная существующая сессия
+        Returns:
+            Optional[TestType]: Тип теста или None, если не найден
+        """
+        return await self.get(session=session, obj_id=test_type_id)
 
 
 test_types_repo = TestTypesRepo(TestType)

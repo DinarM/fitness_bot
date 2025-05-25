@@ -1,9 +1,9 @@
 from sqlalchemy import select
 from app.db.models import User, user_bots
-from app.repo import bot
+from app.repo import bot_token
 from app.repo.base import BaseRepo, with_session
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Optional, List
+from typing import Optional
 
 class UserRepo(BaseRepo):
     @with_session
@@ -35,7 +35,7 @@ class UserRepo(BaseRepo):
             user = await self.create(user_data, session=session)
 
         try:
-            bot_id = await bot.bot_repo.get_id_by_telegram_id(telegram_bot_id, session=session)
+            bot_id = await bot_token.bot_repo.get_id_by_telegram_id(telegram_bot_id, session=session)
             
             # Проверяем существование связи через прямую проверку в таблице user_bots
             link_exists = await session.execute(
