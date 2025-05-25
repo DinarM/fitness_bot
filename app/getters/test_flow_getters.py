@@ -1,18 +1,5 @@
-import json
-from aiogram.types import CallbackQuery
-from aiogram_dialog import Dialog, Window, DialogManager, StartMode, ShowMode
-from aiogram_dialog.widgets.kbd import Button
-from aiogram_dialog.widgets.text import Format, Const
-from sqlalchemy import select
-from app.db.database import AsyncSessionLocal
-from app.db.models import TestQuestion, TestType, TestUserAnswer, TestAnswer
-from app.dialogs.states import TestsSG
-from aiogram.types import CallbackQuery, Message
-from aiogram_dialog import DialogManager, ShowMode, StartMode
-from aiogram.enums import ContentType
-from aiogram_dialog.widgets.input import TextInput, ManagedTextInput, MessageInput
-from aiogram_dialog.widgets.kbd import Select
-from app.repo import test_types_repo
+from aiogram_dialog import DialogManager
+from app.repo import test_types_repo, test_question_repo, test_answer_repo
 
 
 async def start_test_getter(dialog_manager: DialogManager, **kwargs):
@@ -23,4 +10,27 @@ async def start_test_getter(dialog_manager: DialogManager, **kwargs):
         "description": test_type.description,
         "name": test_type.name,
         "estimated_duration": test_type.estimated_duration,
+    }
+
+async def text_type_getter(dialog_manager: DialogManager, **kwargs):
+    question_id = dialog_manager.dialog_data["question_ids"][dialog_manager.dialog_data["current_index"]]
+    question = await test_question_repo.get_by_id(id=question_id)
+    return {
+        "question_text": question.question_text,
+        "question_number": dialog_manager.dialog_data["question_number"],
+    }
+
+async def single_choice_type_getter(dialog_manager: DialogManager, **kwargs):
+    question_id = dialog_manager.dialog_data["question_ids"][dialog_manager.dialog_data["current_index"]]
+    
+    # Получаем вопрос
+    question = await test_question_repo.get_by_id(id=question_id)
+
+    # Получаем ответы, исключая удалённые
+    answers = await test_answer_repo.get_multi_by_test_question(question_id=question.id)
+
+    return {
+        "question_text": question.question_text,
+        "possible_answers": [{"id": a.id, "name": a.text} for a in answers],
+        "question_number": dialog_manager.dialog_data["question_number"],
     }

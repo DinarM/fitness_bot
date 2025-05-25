@@ -73,12 +73,24 @@ class BaseRepo:
     async def get_multi_by_field(
             self,
             session: AsyncSession,
+            order_by: Optional[str] = None,
             **kwargs
     ) -> List[Any]:
         """
         Generic method to fetch multiple records by arbitrary fields.
-        Usage: await repo.get_multi_by_field(session, is_active=True)
+        Args:
+            session: Сессия базы данных
+            order_by: Опциональное поле для сортировки (например, 'order')
+            **kwargs: Поля для фильтрации
+        Returns:
+            List[Any]: Список объектов
+        Usage: 
+            await repo.get_multi_by_field(session, is_active=True, order_by='order')
         """
         stmt = select(self.model).filter_by(**kwargs)
+        
+        if order_by and hasattr(self.model, order_by):
+            stmt = stmt.order_by(getattr(self.model, order_by))
+        
         result = await session.execute(stmt)
         return result.scalars().all()

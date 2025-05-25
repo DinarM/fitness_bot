@@ -3,7 +3,6 @@ from app.repo.base import BaseRepo, with_session
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 from sqlalchemy import select
-from app.db.models import BotToken
 from aiogram import Bot
 
 class BotRepo(BaseRepo):
