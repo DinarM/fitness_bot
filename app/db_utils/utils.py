@@ -1,44 +1,9 @@
-from sqlalchemy import select, update, func
-from app.db.models import User, TestType, TestQuestion, TestUserAnswer, BotToken, user_bots
+from sqlalchemy import select
+from app.db.models import BotToken
 from app.db.database import AsyncSessionLocal
-from aiogram import Bot, Dispatcher, types, Router, F
-from aiogram_dialog import DialogManager, StartMode, ShowMode
-from app.dialogs import states
-from sqlalchemy import true, null
-
-async def get_bot_id_by_telegram_id(session, telegram_bot_id: int) -> int:
-    bot_stmt = select(BotToken).where(BotToken.telegram_bot_id == telegram_bot_id)
-    bot_result = await session.execute(bot_stmt)
-    bot_token = bot_result.scalar_one_or_none()
-    if not bot_token:
-        raise ValueError("Bot with given telegram_bot_id not found")
-    return bot_token.id
+from aiogram import Bot
 
 
-async def get_or_create_user(session, telegram_id: int, telegram_bot_id: int, telegram_data: dict) -> User:
-    bot_id = await get_bot_id_by_telegram_id(session, telegram_bot_id)
-
-    stmt = select(User).where(User.telegram_id == telegram_id)
-    result = await session.execute(stmt)
-    user = result.scalar_one_or_none()
-
-    if not user:
-        user = User(
-            telegram_id=telegram_id,
-            telegram_username=telegram_data.get("username"),
-            name=telegram_data.get("first_name"),
-        )
-        session.add(user)
-        await session.commit()
-        await session.refresh(user)
-
-    link_stmt = select(user_bots).where(user_bots.c.user_id == user.id, user_bots.c.bot_id == bot_id)
-    link = (await session.execute(link_stmt)).first()
-    if not link:
-        await session.execute(user_bots.insert().values(user_id=user.id, bot_id=bot_id))
-        await session.commit()
-
-    return user
 
 
 async def get_tokens():
@@ -48,20 +13,18 @@ async def get_tokens():
         return [bt.token for bt in result.scalars().all()]
 
 
-async def start_dialog_handler(message: types.Message, dialog_manager: DialogManager):
-    print(f"Команда /start получена от пользователя: {message.from_user.id}")
-    async with AsyncSessionLocal() as session:
-        await get_or_create_user(
-            session=session,
-            telegram_id=message.from_user.id,
-            telegram_bot_id=message.bot.id,
-            telegram_data={
-                "username": message.from_user.username,
-                "first_name": message.from_user.first_name,
-                "last_name": message.from_user.last_name,
-            }
-        )
-    await dialog_manager.start(states.Main.MAIN, mode=StartMode.RESET_STACK, show_mode=ShowMode.SEND,)
+# async def start_dialog_handler(message: types.Message, dialog_manager: DialogManager):
+#     print(f"Команда /start получена от пользователя: {message.from_user.id}")
+#     await user_repository.get_or_create_user(
+#         telegram_id=message.from_user.id,
+#         telegram_bot_id=message.bot.id,
+#         telegram_data={
+#             "username": message.from_user.username,
+#             "first_name": message.from_user.first_name,
+#             "last_name": message.from_user.last_name,
+#         }
+#     )
+#     await dialog_manager.start(states.Main.MAIN, mode=StartMode.RESET_STACK, show_mode=ShowMode.SEND,)
 
 
 async def update_bot_info(bot: Bot, session: AsyncSessionLocal) -> bool:
@@ -86,19 +49,3 @@ async def update_bot_info(bot: Bot, session: AsyncSessionLocal) -> bool:
         return False
     
 
-async def get_test_types(dialog_manager, **kwargs):
-    async with AsyncSessionLocal() as session:
-        bot_id = await get_bot_id_by_telegram_id(session, dialog_manager.event.bot.id)
-
-        test_types_result = await session.execute(
-            select(TestType).where(TestType.bot_id == bot_id,
-                TestType.is_active == true(),
-                TestType.deleted_at.is_(None)
-                )
-        )
-        test_types = test_types_result.scalars().all()
-        return {
-            "test_types": [
-                {"id": str(tt.id), "name": tt.name} for tt in test_types
-            ]
-        }

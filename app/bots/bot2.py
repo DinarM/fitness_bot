@@ -9,9 +9,9 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import ErrorEvent, Message, ReplyKeyboardRemove
 from app.dialogs import states
 from app.dialogs.main_dialog import main_dialog
-from app.dialogs.select import selects_dialog
-from app.dialogs.tests import test_dialog
+from app.dialogs.select_test_dialog import test_dialog
 from app.dialogs.tests_flow import tests_dialog
+from app.repo import user_repo
 
 from aiogram_dialog import DialogManager, ShowMode, StartMode, setup_dialogs
 from aiogram_dialog.api.exceptions import UnknownIntent
@@ -19,6 +19,15 @@ from aiogram_dialog.api.exceptions import UnknownIntent
 
 async def start(message: Message, dialog_manager: DialogManager):
     # it is important to reset stack because user wants to restart everything
+    await user_repo.get_or_create_user(
+        telegram_id=message.from_user.id,
+        telegram_bot_id=message.bot.id,
+        telegram_data={
+            "username": message.from_user.username,
+            "first_name": message.from_user.first_name,
+            "last_name": message.from_user.last_name,
+        }
+    )
     await dialog_manager.start(
         states.Main.MAIN,
         mode=StartMode.RESET_STACK,
@@ -57,7 +66,6 @@ async def on_unknown_intent(event: ErrorEvent, dialog_manager: DialogManager):
 dialog_router = Router()
 dialog_router.include_routers(
     main_dialog,
-    selects_dialog,
     test_dialog,
     tests_dialog,
 )
