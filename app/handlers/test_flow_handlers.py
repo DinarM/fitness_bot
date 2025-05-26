@@ -2,15 +2,40 @@ from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.kbd import Button
 from app.dialogs.states import TestsSG
 from aiogram.types import CallbackQuery, Message
-from aiogram_dialog.widgets.input import TextInput
-from aiogram_dialog.widgets.kbd import Select, Multiselect
+from aiogram_dialog.widgets.kbd import Multiselect
 from app.repo import test_question_repo
-from typing import Any, Callable
+from typing import Any, List, Dict, Union
+from aiogram import Bot
 
+async def get_next_window(question_type: str) -> TestsSG:
+    """Получает следующее окно на основе типа вопроса"""
+    window_map = {
+        'text': TestsSG.TEXT_TYPE_WINDOW,
+        'single_choice': TestsSG.SINGLE_CHOICE_TYPE_WINDOW,
+        'multiple_choice': TestsSG.MULTIPLE_CHOICE_TYPE_WINDOW,
+    }
+    return window_map.get(question_type)
+
+async def save_answer(
+    dialog_manager: DialogManager,
+    question_id: int,
+    answer: Union[str, List[str]]
+) -> None:
+    """Сохраняет ответ пользователя"""
+    answers = dialog_manager.dialog_data.get('test_user_answer', {})
+    answers[question_id] = answer
+    dialog_manager.dialog_data['test_user_answer'] = answers
+
+async def get_current_question_data(dialog_manager: DialogManager) -> tuple[int, List[int], int]:
+    """Получает данные текущего вопроса"""
+    dialog_data = dialog_manager.dialog_data
+    current_index = dialog_data.get('current_index', 0)
+    question_ids = dialog_data.get('question_ids', [])
+    question_id = question_ids[current_index] if question_ids else None
+    return current_index, question_ids, question_id
 
 async def start_test(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
     test_type_id = int(dialog_manager.start_data.get('test_type_id'))
-    
     questions = await test_question_repo.get_multi_by_test_type(test_type_id=test_type_id)
     
     if not questions:
@@ -18,7 +43,6 @@ async def start_test(callback: CallbackQuery, button: Button, dialog_manager: Di
         return
         
     dialog_manager.start_data.clear()
-    
     dialog_manager.dialog_data.update({
         "question_ids": [q.id for q in questions],
         "test_user_answer": {},
@@ -26,44 +50,27 @@ async def start_test(callback: CallbackQuery, button: Button, dialog_manager: Di
         "question_number": 1,
     })
   
-    if questions[0].question_type == "text":
-        await dialog_manager.switch_to(TestsSG.TEXT_TYPE_WINDOW)
-    elif questions[0].question_type == "single_choice":
-        await dialog_manager.switch_to(TestsSG.SINGLE_CHOICE_TYPE_WINDOW)
-    elif questions[0].question_type == "multiple_choice":
-        await dialog_manager.switch_to(TestsSG.MULTIPLE_CHOICE_TYPE_WINDOW)
+    next_window = await get_next_window(questions[0].question_type)
+    if next_window:
+        await dialog_manager.switch_to(next_window)
 
-async def next_question(
-    callback: CallbackQuery, 
-    button: Button,
-    dialog_manager: DialogManager
-):
-    # Увеличиваем счетчики
-    dialog_data = dialog_manager.dialog_data
-    current_index = dialog_data.get('current_index', 0)
-    question_ids = dialog_data.get('question_ids', [])
-    dialog_data['current_index'] = current_index + 1
-    dialog_data['question_number'] = dialog_data.get('question_number', 1) + 1
+async def next_question(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
+    current_index, question_ids, _ = await get_current_question_data(dialog_manager)
     
-    # Проверяем, есть ли следующий вопрос
+    # Увеличиваем счетчики
+    dialog_manager.dialog_data['current_index'] = current_index + 1
+    dialog_manager.dialog_data['question_number'] = dialog_manager.dialog_data.get('question_number', 1) + 1
+    
     if current_index + 1 >= len(question_ids):
         await callback.answer('Тест завершен!')
         return
         
-    # Получаем следующий вопрос
     next_question = await test_question_repo.get_by_id(id=question_ids[current_index + 1])
     if not next_question:
         await callback.answer('Ошибка: следующий вопрос не найден')
         return
         
-    # Переключаемся на соответствующее окно
-    window_map = {
-        'text': TestsSG.TEXT_TYPE_WINDOW,
-        'single_choice': TestsSG.SINGLE_CHOICE_TYPE_WINDOW,
-        'multiple_choice': TestsSG.MULTIPLE_CHOICE_TYPE_WINDOW,
-    }
-    
-    next_window = window_map.get(next_question.question_type)
+    next_window = await get_next_window(next_question.question_type)
     if next_window:
         await dialog_manager.switch_to(next_window)
     else:
@@ -78,41 +85,34 @@ async def single_answer_handler(
     dialog_manager: DialogManager,
     item_id: str | None = None 
 ) -> None:
-    """
-    Универсальный обработчик ответов для разных типов вопросов
-    Args:
-        event: Объект сообщения или callback
-        widget: Виджет ввода (TextInput или Select)
-        dialog_manager: Менеджер диалога
-        answer: Значение ответа (текст или ID)
-    """
     is_text_input = isinstance(callback, Message)
+    answer = callback.text if is_text_input else item_id
     
-    # Получаем ответ в зависимости от типа ввода
-    if is_text_input:
-        answer = callback.text  # Для TextInput берем текст из сообщения
-    else:
-        answer = item_id 
-
-    dialog_data = dialog_manager.dialog_data
-    current_index = dialog_data.get('current_index', 0)
-    question_ids = dialog_data.get('question_ids', [])
+    current_index, question_ids, question_id = await get_current_question_data(dialog_manager)
     
-    # Проверяем валидность индекса
     if not question_ids or current_index >= len(question_ids):
         await callback.answer('Ошибка: вопрос не найден')
         return
         
-    # Сохраняем ответ
-    question_id = question_ids[current_index]
-    answers = dialog_data.get('test_user_answer', {})
-    answers[question_id] = answer
-    dialog_data['test_user_answer'] = answers
+    await save_answer(dialog_manager, question_id, answer)
+    
     if is_text_input:
+        # Удаляем сообщение пользователя
+        try:
+            await callback.delete()
+        except Exception:
+            pass
+        
+        # Удаляем сообщение бота с вопросом
+        # try:
+        #     await dialog_manager._message_manager.remove() 
+        # except Exception:
+            # pass
+        bot: Bot = dialog_manager.event.bot  # получаем экземпляр бота
+        chat_id = dialog_manager.event.chat.id
+        message_id = dialog_manager.current_stack().last_message_id
+        await bot.delete_message(chat_id, message_id)
         await next_question(callback, None, dialog_manager)
-    print(answers)
-
-
 
 async def multi_answer_handler(
     callback: CallbackQuery,
@@ -120,30 +120,21 @@ async def multi_answer_handler(
     dialog_manager: DialogManager,
     item_id: str,
 ):
-
-    dialog_data = dialog_manager.dialog_data
-    current_index = dialog_data.get('current_index', 0)
-    question_ids = dialog_data.get('question_ids', [])
+    current_index, question_ids, question_id = await get_current_question_data(dialog_manager)
     
-    # Проверяем валидность индекса
     if not question_ids or current_index >= len(question_ids):
         await callback.answer('Ошибка: вопрос не найден')
         return
         
-    # Сохраняем ответ
-    question_id = question_ids[current_index]
-    answers = dialog_data.get('test_user_answer', {})
-    question_id = question_ids[current_index]
-    answers = dialog_data.get('test_user_answer', {})
+    answers = dialog_manager.dialog_data.get('test_user_answer', {})
     selected = answers.get(question_id, [])
+    
     if item_id in selected:
         selected.remove(item_id)
     else:
         selected.append(item_id)
-
-    answers[question_id] = selected
-    dialog_data['test_user_answer'] = answers
-
+        
+    await save_answer(dialog_manager, question_id, selected)
     await callback.answer()
 
 def has_selected_items(data: Any, widget: Any, manager: DialogManager) -> bool: 

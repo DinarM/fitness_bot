@@ -6,8 +6,7 @@ from app.handlers.test_flow_handlers import has_selected_items, multi_answer_han
 from app.dialogs.states import TestsSG
 from aiogram.enums import ContentType
 from aiogram_dialog.widgets.input import TextInput, MessageInput
-from aiogram_dialog.widgets.kbd import Select, Multiselect, Checkbox, Radio
-from aiogram_dialog.api.entities import Context
+from aiogram_dialog.widgets.kbd import Multiselect, Radio
 
 start_test_window = Window(
         Format('<b>{name}!</b>\n'),
@@ -22,7 +21,7 @@ text_type_dialog = Window(
         Format('{question_number}. {question_text}'),
         TextInput(
             id='text_input',
-            on_success=single_answer_handler
+            on_success=single_answer_handler,
         ),
         MessageInput(
             func=no_text,
