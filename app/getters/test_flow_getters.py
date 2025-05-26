@@ -12,7 +12,7 @@ async def start_test_getter(dialog_manager: DialogManager, **kwargs):
         "estimated_duration": test_type.estimated_duration,
     }
 
-async def text_type_getter(dialog_manager: DialogManager, **kwargs):
+async def question_input_getter(dialog_manager: DialogManager, **kwargs):
     question_id = dialog_manager.dialog_data["question_ids"][dialog_manager.dialog_data["current_index"]]
     question = await test_question_repo.get_by_id(id=question_id)
     return {

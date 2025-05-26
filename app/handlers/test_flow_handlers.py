@@ -4,8 +4,9 @@ from app.dialogs.states import TestsSG
 from aiogram.types import CallbackQuery, Message
 from aiogram_dialog.widgets.kbd import Multiselect
 from app.repo import test_question_repo
-from typing import Any, List, Dict, Union
+from typing import Any, List, Union
 from aiogram import Bot
+from aiogram_dialog.widgets.input import ManagedTextInput
 
 async def get_next_window(question_type: str) -> TestsSG:
     """Получает следующее окно на основе типа вопроса"""
@@ -13,6 +14,8 @@ async def get_next_window(question_type: str) -> TestsSG:
         'text': TestsSG.TEXT_TYPE_WINDOW,
         'single_choice': TestsSG.SINGLE_CHOICE_TYPE_WINDOW,
         'multiple_choice': TestsSG.MULTIPLE_CHOICE_TYPE_WINDOW,
+        'numeric': TestsSG.NUMERIC_TYPE_WINDOW,
+        'rating': TestsSG.RATING_TYPE_WINDOW,
     }
     return window_map.get(question_type)
 
@@ -102,16 +105,14 @@ async def single_answer_handler(
             await callback.delete()
         except Exception:
             pass
-        
-        # Удаляем сообщение бота с вопросом
-        # try:
-        #     await dialog_manager._message_manager.remove() 
-        # except Exception:
-            # pass
         bot: Bot = dialog_manager.event.bot  # получаем экземпляр бота
         chat_id = dialog_manager.event.chat.id
         message_id = dialog_manager.current_stack().last_message_id
-        await bot.delete_message(chat_id, message_id)
+        try:
+            await bot.delete_message(chat_id, message_id)
+        except Exception:
+            pass
+        
         await next_question(callback, None, dialog_manager)
 
 async def multi_answer_handler(
@@ -151,3 +152,19 @@ def has_selected_items(data: Any, widget: Any, manager: DialogManager) -> bool:
     
     # Проверяем, есть ли ответ для текущего вопроса
     return bool(answers.get(question_id))
+
+def check_numeric_type(text: str) -> None:
+    """Проверяет, является ли введенное значение числом"""
+    try:
+        float(text)
+    except ValueError:
+        raise ValueError()
+
+async def error_numeric_type(
+    message: Message,
+    widget: ManagedTextInput, 
+    dialog_manager: DialogManager,
+    error: ValueError
+) -> None:
+    """Обработка ошибки при вводе некорректного значения для числового типа"""
+    await message.answer('Введенное значение не является числом. \nПримеры допустимых значений: 42, 3.14, -5, 0.001')

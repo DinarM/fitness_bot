@@ -1,8 +1,8 @@
 from aiogram_dialog import Dialog, Window
 from aiogram_dialog.widgets.kbd import Button
 from aiogram_dialog.widgets.text import Format, Const
-from app.getters.test_flow_getters import single_choice_type_getter, start_test_getter, text_type_getter
-from app.handlers.test_flow_handlers import has_selected_items, multi_answer_handler, next_question, no_text, single_answer_handler, start_test
+from app.getters.test_flow_getters import single_choice_type_getter, start_test_getter, question_input_getter
+from app.handlers.test_flow_handlers import check_numeric_type, error_numeric_type, has_selected_items, multi_answer_handler, next_question, no_text, single_answer_handler, start_test
 from app.dialogs.states import TestsSG
 from aiogram.enums import ContentType
 from aiogram_dialog.widgets.input import TextInput, MessageInput
@@ -27,7 +27,7 @@ text_type_dialog = Window(
             func=no_text,
             content_types=ContentType.ANY
         ),
-        getter=text_type_getter,
+        getter=question_input_getter,
         state=TestsSG.TEXT_TYPE_WINDOW,
     )
 single_choice_type_dialog = Window(
@@ -51,24 +51,58 @@ single_choice_type_dialog = Window(
         state=TestsSG.SINGLE_CHOICE_TYPE_WINDOW,
         )
 multiple_choice_type_dialog = Window(
-        Format('{question_number}. {question_text}'),
-        Multiselect(
-            checked_text=Format('[✓] {item[name]}'),
-            unchecked_text=Format('[  ] {item[name]}'),
-            id="multi_select",
-            item_id_getter=lambda item: item["id"],
-            items="possible_answers",
-            on_click=multi_answer_handler,
-        ),
-        Button(
-            Const("⏭ Следующий вопрос"),
-            id="next_question",
-            on_click=next_question,
-            when=has_selected_items
-        ),
-        getter=single_choice_type_getter,
-        state=TestsSG.MULTIPLE_CHOICE_TYPE_WINDOW,
-        )
+    Format('{question_number}. {question_text}'),
+    Multiselect(
+        checked_text=Format('[✓] {item[name]}'),
+        unchecked_text=Format('[  ] {item[name]}'),
+        id="multi_select",
+        item_id_getter=lambda item: item["id"],
+        items="possible_answers",
+        on_click=multi_answer_handler,
+    ),
+    Button(
+        Const("⏭ Следующий вопрос"),
+        id="next_question",
+        on_click=next_question,
+        when=has_selected_items
+    ),
+    getter=single_choice_type_getter,
+    state=TestsSG.MULTIPLE_CHOICE_TYPE_WINDOW,
+    )
+numeric_type_dialog = Window(
+    Format('{question_number}. {question_text}'),
+    TextInput(
+        id='numeric_input',
+        type_factory=check_numeric_type,
+        on_success=single_answer_handler,
+        on_error=error_numeric_type
+    ),
+    MessageInput(
+        func=no_text,
+        content_types=ContentType.ANY
+    ),
+    getter=question_input_getter,
+    state=TestsSG.NUMERIC_TYPE_WINDOW,
+)
+rating_type_dialog = Window(
+    Format('{question_number}. {question_text}'),
+    Radio(
+        checked_text=Format('🔘 {item}'),
+        unchecked_text=Format('⚪️ {item}'),
+        id="rating_radio",
+        item_id_getter=lambda item: str(item),
+        items=[i for i in range(1, 5)],
+        on_click=single_answer_handler,
+    ),
+    Button(
+        Const("⏭ Следующий вопрос"),
+        id="next_question",
+        on_click=next_question,
+        when=has_selected_items
+    ),
+    getter=question_input_getter,
+    state=TestsSG.RATING_TYPE_WINDOW,
+)
 
 
 tests_dialog = Dialog(
@@ -76,4 +110,6 @@ tests_dialog = Dialog(
     text_type_dialog,
     single_choice_type_dialog,
     multiple_choice_type_dialog,
+    numeric_type_dialog,
+    rating_type_dialog,
 )
