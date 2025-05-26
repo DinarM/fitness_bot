@@ -67,3 +67,4 @@ class TestsSG(StatesGroup):
     TEXT_TYPE_WINDOW = State()
     SINGLE_CHOICE_TYPE_WINDOW = State()
     QUESTION = State()
+    MULTIPLE_CHOICE_TYPE_WINDOW = State()
