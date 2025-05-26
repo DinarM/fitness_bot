@@ -1,98 +1,13 @@
+from app.bots.base_bot import BaseBot
 import asyncio
-import logging
-import os.path
 
-from aiogram import Bot, Dispatcher, F, Router
-from aiogram.exceptions import TelegramBadRequest
-from aiogram.filters import ExceptionTypeFilter
-from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.types import ErrorEvent, Message, ReplyKeyboardRemove
-from app.dialogs import states
-from app.dialogs.main_dialog import main_dialog
-from app.dialogs.select_test_dialog import test_dialog
-from app.dialogs.tests_flow_dialog import tests_dialog
-from app.repo import user_repo, bot_repo
-
-from aiogram_dialog import DialogManager, ShowMode, StartMode, setup_dialogs
-from aiogram_dialog.api.exceptions import UnknownIntent
-
-
-async def start(message: Message, dialog_manager: DialogManager):
-    # it is important to reset stack because user wants to restart everything
-    await user_repo.get_or_create_user(
-        telegram_id=message.from_user.id,
-        telegram_bot_id=message.bot.id,
-        telegram_data={
-            "username": message.from_user.username,
-            "first_name": message.from_user.first_name,
-            "last_name": message.from_user.last_name,
-        }
-    )
-    await dialog_manager.start(
-        states.Main.MAIN,
-        mode=StartMode.RESET_STACK,
-        show_mode=ShowMode.SEND,
-    )
-
-
-async def on_unknown_intent(event: ErrorEvent, dialog_manager: DialogManager):
-    # Example of handling UnknownIntent Error and starting new dialog.
-    logging.error("Restarting dialog: %s", event.exception)
-    if event.update.callback_query:
-        await event.update.callback_query.answer(
-            "Bot process was restarted due to maintenance.\n"
-            "Redirecting to main menu.",
-        )
-        if event.update.callback_query.message:
-            try:  # noqa: SIM105
-                await event.update.callback_query.message.delete()
-            except TelegramBadRequest:
-                pass  # whatever
-    elif event.update.message:
-        await event.update.message.answer(
-            "Bot process was restarted due to maintenance.\n"
-            "Redirecting to main menu.",
-            reply_markup=ReplyKeyboardRemove(),
-        )
-    actual_event = event.update.callback_query or event.update.message
-    await dialog_manager.start(
-        states.Main.MAIN,
-        mode=StartMode.RESET_STACK,
-        show_mode=ShowMode.SEND,
-        data={"event": actual_event},
-    )
-
-
-dialog_router = Router()
-dialog_router.include_routers(
-    main_dialog,
-    test_dialog,
-    tests_dialog,
-)
-
-
-def setup_dp():
-    storage = MemoryStorage()
-    dp = Dispatcher(storage=storage)
-    dp.message.register(start, F.text == "/start")
-    dp.business_message.register(start, F.text == "/start")
-    dp.errors.register(
-        on_unknown_intent,
-        ExceptionTypeFilter(UnknownIntent),
-    )
-    dp.include_router(dialog_router)
-    setup_dialogs(dp)
-    return dp
-
+class Bot1(BaseBot):
+    def __init__(self):
+        super().__init__("BOT_TOKEN")
 
 async def main():
-    # real main
-    logging.basicConfig(level=logging.INFO)
-    bot = Bot(token=os.getenv("BOT_TOKEN"))
-    dp = setup_dp()
-    await dp.start_polling(bot)
-    await bot_repo.update_bot_info(bot)
-
+    bot = Bot1()
+    await bot.run()
 
 if __name__ == "__main__":
     asyncio.run(main())
