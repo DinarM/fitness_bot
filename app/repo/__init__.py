@@ -3,6 +3,7 @@ from .user import user_repo
 from .test_types import test_types_repo
 from .test_question import test_question_repo
 from .test_answer import test_answer_repo
+from .test_user_answer import test_user_answer_repo
 
 
 __all__ = [
@@ -11,4 +12,5 @@ __all__ = [
     'test_types_repo',
     'test_question_repo',
     'test_answer_repo',
+    'test_user_answer_repo'
 ]

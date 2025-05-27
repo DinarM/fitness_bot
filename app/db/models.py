@@ -67,7 +67,7 @@ class TestUserAnswer(BaseModel):
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     test_type_id = Column(Integer, ForeignKey("test_types.id"), nullable=False)
-    answer = Column(Text, nullable=False)
+    answers = Column(Text, nullable=False)
     bot_id = Column(Integer, ForeignKey("bot_tokens.id"), nullable=False)
 
     bot = relationship("BotToken")

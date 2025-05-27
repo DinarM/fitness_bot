@@ -1,12 +1,14 @@
+import json
 from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.kbd import Button
 from app.dialogs.states import TestsSG
 from aiogram.types import CallbackQuery, Message
 from aiogram_dialog.widgets.kbd import Multiselect
-from app.repo import test_question_repo
+from app.repo import test_question_repo, bot_repo, user_repo, test_user_answer_repo, test_answer_repo
 from typing import Any, List, Union
 from aiogram import Bot
 from aiogram_dialog.widgets.input import ManagedTextInput
+from app.db.database import AsyncSessionLocal
 
 async def get_next_window(question_type: str) -> TestsSG:
     """Получает следующее окно на основе типа вопроса"""
@@ -47,6 +49,7 @@ async def start_test(callback: CallbackQuery, button: Button, dialog_manager: Di
         
     dialog_manager.start_data.clear()
     dialog_manager.dialog_data.update({
+        "test_type_id": test_type_id,
         "question_ids": [q.id for q in questions],
         "test_user_answer": {},
         "current_index": 0,
@@ -65,7 +68,8 @@ async def next_question(callback: CallbackQuery, button: Button, dialog_manager:
     dialog_manager.dialog_data['question_number'] = dialog_manager.dialog_data.get('question_number', 1) + 1
     
     if current_index + 1 >= len(question_ids):
-        await callback.answer('Тест завершен!')
+        # Если это был последний вопрос, переходим к финальному окну
+        await dialog_manager.switch_to(TestsSG.FINAL_REVIEW_WINDOW)
         return
         
     next_question = await test_question_repo.get_by_id(id=question_ids[current_index + 1])
@@ -168,3 +172,51 @@ async def error_numeric_type(
 ) -> None:
     """Обработка ошибки при вводе некорректного значения для числового типа"""
     await message.answer('Введенное значение не является числом. \nПримеры допустимых значений: 42, 3.14, -5, 0.001')
+
+async def save_test_results(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
+    """Сохраняет результаты теста в БД"""
+    test_type_id = int(dialog_manager.dialog_data.get('test_type_id'))
+    answers = dialog_manager.dialog_data.get('test_user_answer', {})
+    
+    # Преобразуем ID в тексты
+    formatted_answers = {}
+    for question_id, answer in answers.items():
+        question = await test_question_repo.get_by_id(id=int(question_id))
+        if not question:
+            continue
+            
+        question_text = question.question_text
+        if question.question_type in ['multiple_choice', 'single_choice']:
+            answers_list = await test_answer_repo.get_multi_by_test_question(question_id=int(question_id))
+            answer_ids = answer if isinstance(answer, list) else [answer]
+            answer_texts = []
+            for answer_id in answer_ids:
+                answer_obj = next((a for a in answers_list if str(a.id) == str(answer_id)), None)
+                if answer_obj:
+                    answer_texts.append(answer_obj.text)
+            formatted_answers[question_text] = answer_texts if answer_texts else 'Нет ответа'
+        else:
+            formatted_answers[question_text] = answer if answer else 'Нет ответа'
+    
+    answers_json = json.dumps(formatted_answers, ensure_ascii=False)
+    
+    async with AsyncSessionLocal() as session:
+        bot_id = await bot_repo.get_id_by_telegram_id(telegram_bot_id=dialog_manager.event.bot.id, session=session)
+        user_id = await user_repo.get_user_by_telegram_id(telegram_id=callback.from_user.id, session=session)
+
+        print(f'user_id: {user_id}, bot_id: {bot_id}, test_type_id: {test_type_id}, answers: {answers_json}')
+
+        try:
+            await test_user_answer_repo.create_test_result(
+                test_type_id=test_type_id,
+                user_id=user_id.id,
+                bot_id=bot_id,
+                answers=answers_json,
+                session=session
+            )
+        except Exception as e:
+            await callback.answer(f'Ошибка при сохранении результатов теста: {str(e)}', show_alert=True)
+            return
+    
+    await callback.answer('Результаты теста успешно сохранены!')
+    await dialog_manager.done()

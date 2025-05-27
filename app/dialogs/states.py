@@ -70,3 +70,4 @@ class TestsSG(StatesGroup):
     MULTIPLE_CHOICE_TYPE_WINDOW = State()
     NUMERIC_TYPE_WINDOW = State()
     RATING_TYPE_WINDOW = State()
+    FINAL_REVIEW_WINDOW = State()  # добавляем новое состояние

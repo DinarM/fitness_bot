@@ -1,8 +1,8 @@
 from aiogram_dialog import Dialog, Window
 from aiogram_dialog.widgets.kbd import Button
 from aiogram_dialog.widgets.text import Format, Const
-from app.getters.test_flow_getters import single_choice_type_getter, start_test_getter, question_input_getter
-from app.handlers.test_flow_handlers import check_numeric_type, error_numeric_type, has_selected_items, multi_answer_handler, next_question, no_text, single_answer_handler, start_test
+from app.getters.test_flow_getters import final_review_getter, single_choice_type_getter, start_test_getter, question_input_getter
+from app.handlers.test_flow_handlers import check_numeric_type, error_numeric_type, has_selected_items, multi_answer_handler, next_question, no_text, save_test_results, single_answer_handler, start_test
 from app.dialogs.states import TestsSG
 from aiogram.enums import ContentType
 from aiogram_dialog.widgets.input import TextInput, MessageInput
@@ -103,6 +103,23 @@ rating_type_dialog = Window(
     getter=question_input_getter,
     state=TestsSG.RATING_TYPE_WINDOW,
 )
+final_review_window = Window(
+    Format('<b>Проверьте ваши ответы:</b>\n\n'),
+    Format('{formatted_text}'),
+    Button(
+        Const('✅ Сохранить результаты'),
+        id='save_results',
+        on_click=save_test_results
+    ),
+    Button(
+        Const('🔄 Начать заново'),
+        id='restart_test',
+        on_click=start_test
+    ),
+    getter=final_review_getter,
+    state=TestsSG.FINAL_REVIEW_WINDOW,
+    parse_mode='HTML'
+)
 
 
 tests_dialog = Dialog(
@@ -112,4 +129,5 @@ tests_dialog = Dialog(
     multiple_choice_type_dialog,
     numeric_type_dialog,
     rating_type_dialog,
+    final_review_window,
 )

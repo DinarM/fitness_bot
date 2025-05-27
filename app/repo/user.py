@@ -59,5 +59,20 @@ class UserRepo(BaseRepo):
 
         return user
 
+    @with_session
+    async def get_user_by_telegram_id(
+        self,
+        telegram_id: int, 
+        session: Optional[AsyncSession] = None
+    ) -> Optional[User]:
+        """
+        Получает пользователя по его Telegram ID
+        Args:
+            telegram_id: Telegram ID пользователя
+            session: Опциональная существующая сессия
+        Returns:
+            Optional[User]: Пользователь или None, если не найден
+        """
+        return await self.get_by_field(session=session, telegram_id=telegram_id)
 
 user_repo = UserRepo(User)
