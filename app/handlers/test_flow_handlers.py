@@ -40,18 +40,24 @@ async def get_current_question_data(dialog_manager: DialogManager) -> tuple[int,
     return current_index, question_ids, question_id
 
 async def start_test(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
-    test_type_id = int(dialog_manager.start_data.get('test_type_id'))
+    test_type_id = dialog_manager.start_data.get('test_type_id')
+    if test_type_id is None:
+        test_type_id = dialog_manager.dialog_data.get('test_type_id')
+    
+    if test_type_id is None:
+        await callback.answer('Ошибка: не удалось определить тип теста', show_alert=True)
+        return
+        
+    test_type_id = int(test_type_id)
     questions = await test_question_repo.get_multi_by_test_type(test_type_id=test_type_id)
     
     if not questions:
         await callback.answer('В этом тесте нет активных вопросов', show_alert=True)
         return
         
-    dialog_manager.start_data.clear()
     dialog_manager.dialog_data.update({
         "test_type_id": test_type_id,
         "question_ids": [q.id for q in questions],
-        "test_user_answer": {},
         "current_index": 0,
         "question_number": 1,
     })
