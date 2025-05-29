@@ -75,7 +75,7 @@ async def final_review_getter(dialog_manager: DialogManager, **kwargs):
     # Преобразуем список в строку с форматированием
     formatted_text = ''
     for item in review_data:
-        formatted_text += f'<b>Вопрос {item["question_number"]}:</b>\n{item["question"]}\n<i>Ваш ответ:</i> {item["answer"]}\n\n'
+        formatted_text += f'<b>{item["question_number"]}. {item["question"]}</b>\n<i>Ваш ответ:</i> {item["answer"]}\n\n'
     
     return {
         'formatted_text': formatted_text

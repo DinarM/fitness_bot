@@ -1,10 +1,12 @@
+from aiogram_dialog import StartMode
 from aiogram_dialog.widgets.kbd import Start
 from aiogram_dialog.widgets.text import Const
 
 from . import states
 
 MAIN_MENU_BUTTON = Start(
-    text=Const("☰ Main menu"),
+    text=Const("☰ Главное меню"),
     id="__main__",
     state=states.Main.MAIN,
+    mode=StartMode.RESET_STACK,
 )

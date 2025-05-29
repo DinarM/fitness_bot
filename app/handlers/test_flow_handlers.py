@@ -1,5 +1,4 @@
 import json
-from aiogram_dialog import DialogManager
 from aiogram_dialog.widgets.kbd import Button
 from app.dialogs.states import TestsSG
 from aiogram.types import CallbackQuery, Message
@@ -9,6 +8,9 @@ from typing import Any, List, Union
 from aiogram import Bot
 from aiogram_dialog.widgets.input import ManagedTextInput
 from app.db.database import AsyncSessionLocal
+from app.dialogs import states
+from aiogram_dialog import DialogManager, ShowMode, StartMode
+
 
 async def get_next_window(question_type: str) -> TestsSG:
     """Получает следующее окно на основе типа вопроса"""
@@ -177,7 +179,22 @@ async def error_numeric_type(
     error: ValueError
 ) -> None:
     """Обработка ошибки при вводе некорректного значения для числового типа"""
-    await message.answer('Введенное значение не является числом. \nПримеры допустимых значений: 42, 3.14, -5, 0.001')
+    if message.text:
+        # Удаляем сообщение пользователя
+
+        bot: Bot = dialog_manager.event.bot  # получаем экземпляр бота
+        chat_id = dialog_manager.event.chat.id
+        message_id = dialog_manager.current_stack().last_message_id
+        try:
+            await bot.delete_message(chat_id, message_id)
+            # await msg.delete()
+            # await message.delete()
+        except Exception:
+            pass  # Сообщение уже удалено или нет прав
+        await message.answer(
+            'Введенное значение не является числом. \nПримеры допустимых значений: 42, 3.14, -5, 0.001',
+            reply_to_message_id=message.message_id
+        )
 
 async def save_test_results(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
     """Сохраняет результаты теста в БД"""
@@ -220,9 +237,18 @@ async def save_test_results(callback: CallbackQuery, button: Button, dialog_mana
                 answers=answers_json,
                 session=session
             )
+        
+
         except Exception as e:
             await callback.answer(f'Ошибка при сохранении результатов теста: {str(e)}', show_alert=True)
             return
     
-    await callback.answer('Результаты теста успешно сохранены!')
-    await dialog_manager.done()
+    await callback.message.answer('Результаты теста успешно сохранены!')
+    
+    # await dialog_manager.done() 
+
+    await dialog_manager.start(
+        states.Main.MAIN,
+        mode=StartMode.RESET_STACK,
+        show_mode=ShowMode.DELETE_AND_SEND,
+    )

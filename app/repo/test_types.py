@@ -3,6 +3,7 @@ from app.repo.base import BaseRepo, with_session
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional, List
 from app.repo.bot_token import bot_repo
+from app.repo.test_user_answer import test_user_answer_repo
 
 class TestTypesRepo(BaseRepo):
     @with_session
@@ -63,5 +64,31 @@ class TestTypesRepo(BaseRepo):
         """
         return await self.get(session=session, obj_id=test_type_id)
 
+    @with_session
+    async def get_available_for_user(
+        self,
+        bot_id: int,
+        user_id: int,
+        only_active: bool = True,
+        session: Optional[AsyncSession] = None
+    ) -> List[TestType]:
+        """
+        Получает список доступных типов тестов для пользователя:
+        - если allow_multiple_passes=True, тест всегда доступен
+        - если allow_multiple_passes=False и пользователь уже проходил тест, тест не показывается
+        """
+        all_types = await self.get_by_bot(bot_id, only_active, session=session)
+        # Получаем id уже пройденных тестов
+        user_answers = await test_user_answer_repo.get_user_test_results(user_id=user_id, session=session)
+        passed_type_ids = {answer.test_type_id for answer in user_answers}
+        # Фильтруем
+        result = []
+        for test_type in all_types:
+            if test_type.allow_multiple_passes:
+                result.append(test_type)
+            else:
+                if test_type.id not in passed_type_ids:
+                    result.append(test_type)
+        return result
 
 test_types_repo = TestTypesRepo(TestType)
