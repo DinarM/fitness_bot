@@ -1,4 +1,4 @@
-from sqlalchemy import BigInteger, Column, Integer, String, Text, Boolean, ForeignKey, DateTime, func, Table, select
+from sqlalchemy import BigInteger, Column, Integer, String, Text, Boolean, ForeignKey, DateTime, func, Table
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm import DeclarativeBase
 
@@ -44,7 +44,8 @@ user_bots = Table(
     "user_bots",
     BaseModel.metadata,
     Column("user_id", Integer, ForeignKey("users.id"), primary_key=True),
-    Column("bot_id", Integer, ForeignKey("bot_tokens.id"), primary_key=True)
+    Column("bot_id", Integer, ForeignKey("bot_tokens.id"), primary_key=True),
+    Column("is_admin", Boolean, default=False, comment="Является ли пользователь администратором")
 )
 
 class User(BaseModel):
@@ -55,7 +56,6 @@ class User(BaseModel):
     telegram_username = Column(String(100))
     telegram_id = Column(BigInteger, nullable=False, unique=True, comment="ID Telegram пользователя")
     is_active = Column(Boolean, default=True, comment="Активен ли пользователь")
-    is_admin = Column(Boolean, default=False, comment="Является ли пользователь администратором")
     
     answers = relationship("TestUserAnswer", back_populates="user")
     bots = relationship("BotToken", secondary=user_bots, back_populates="users")
@@ -79,7 +79,7 @@ class BotToken(BaseModel):
 
     id = Column(Integer, primary_key=True)
     name = Column(String(255), nullable=False, unique=True, comment="Название или описание бота")
-    token = Column(String(255), nullable=False, unique=True, comment="Токен Telegram-бота")
+    token_hash = Column(String(255), unique=False, comment="Токен Telegram-бота")
     telegram_bot_id = Column(BigInteger, nullable=True, unique=True, comment="ID Telegram бота")
     bot_username = Column(String(100), nullable=True, comment="Юзернейм Telegram бота")
     is_active = Column(Boolean, default=True, comment="Активен ли бот")

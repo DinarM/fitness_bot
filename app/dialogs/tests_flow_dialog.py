@@ -11,8 +11,8 @@ from aiogram_dialog.widgets.kbd import Multiselect, Radio, Group
 
 start_test_window = Window(
         Format('<b>{name}!</b>\n'),
-        Format('<b>{description}!</b>\n'),
-        Format('<b>Займет времени: {estimated_duration}!</b>\n', when=lambda data, *_: data.get('estimated_duration') is not None),
+        Format('{description}\n'),
+        Format('Займет времени: {estimated_duration} минут\n', when=lambda data, *_: data.get('estimated_duration') is not None),
         Button(Const('Начать тестирование ▶️'), id='b_next', on_click=start_test),
         MAIN_MENU_BUTTON,
         getter=start_test_getter,

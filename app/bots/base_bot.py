@@ -88,5 +88,11 @@ class BaseBot:
         logging.basicConfig(level=logging.INFO)
         bot = Bot(token=os.getenv(self.token_env_name))
         dp = self.setup_dp()
+        
+        # Проверяем успешность обновления информации о боте
+        if not await bot_repo.update_bot_info(bot):
+            logging.error(f"Не удалось обновить информацию о боте {self.token_env_name}. Бот не будет запущен.")
+            return
+            
         await dp.start_polling(bot)
-        await bot_repo.update_bot_info(bot)
+        

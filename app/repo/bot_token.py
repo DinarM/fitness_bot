@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 from sqlalchemy import select
 from aiogram import Bot
+import hashlib
 
 class BotRepo(BaseRepo):
     @with_session
@@ -35,9 +36,15 @@ class BotRepo(BaseRepo):
         """
         try:
             me = await bot.get_me()
+
+
+            token_prefix = bot.token.split(":")[0]
+            print("Token prefix:", token_prefix)
+            token_hash = hashlib.sha256(token_prefix.encode()).hexdigest()
+
             
             result = await session.execute(
-                select(self.model).where(self.model.token == bot.token)
+                select(self.model).where(self.model.token_hash == token_hash)
             )
             bot_record = result.scalar_one_or_none()
             
@@ -48,9 +55,10 @@ class BotRepo(BaseRepo):
                 return True
             return False
                 
-        except Exception:
+        except Exception as e:
             await session.rollback()
-            return False
+            print("Error updating bot info:", str(e))
+            raise e
 
 
 
