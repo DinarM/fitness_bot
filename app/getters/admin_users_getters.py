@@ -1,10 +1,10 @@
 from typing import Dict, List
 
-from app.repo import test_types_repo, user_repo
+from app.repo import user_repo
 from app.repo.bot_token import bot_repo
 from app.db.database import AsyncSessionLocal
 
-async def get_test_types_for_dialog(dialog_manager, **kwargs) -> Dict[str, List[Dict[str, str]]]:
+async def get_admin_users(dialog_manager, **kwargs) -> Dict[str, List[Dict[str, str]]]:
     """
     Получает и форматирует список тестов бота для использования в диалоге
     Args:
@@ -17,26 +17,23 @@ async def get_test_types_for_dialog(dialog_manager, **kwargs) -> Dict[str, List[
     telegram_bot_id = dialog_manager.event.bot.id
 
     async with AsyncSessionLocal() as session:
-        user = await user_repo.get_user_by_telegram_id(telegram_id=dialog_manager.event.from_user.id, session=session)
 
         # Получаем внутренний bot_id
         bot_id = await bot_repo.get_id_by_telegram_id(telegram_bot_id, session=session)
 
         # Получаем только доступные тесты
-        test_types = await test_types_repo.get_available_for_user(
-            bot_id=bot_id,
-            user_id=user.id,
-            only_active=True,
-            session=session
-        )
+        users = await user_repo.get_bot_users(bot_id=bot_id, session=session)
     
-    if not test_types:
+    if not users:
         return {
-            "test_types": [],
-            "no_tests_text": "Нет доступных тестов для прохождения."
+            "users": [],
+            "no_users_text": "Нет доступных тестов для прохождения."
         }
     return {
-        "test_types": [
-            {"id": str(tt.id), "name": tt.name} for tt in test_types
+        "users": [
+            {
+                "id": str(user.id), 
+                "name": f"{user.name} {user.last_name if user.last_name else ''}({user.telegram_username or 'нет username'}){' - админ' if is_admin else ''}"
+            } for user, is_admin in users
         ]
     }

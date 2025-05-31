@@ -1,10 +1,10 @@
-from typing import Dict, List
+from typing import Dict
 
-from app.repo import test_types_repo, user_repo
+from app.repo import user_repo
 from app.repo.bot_token import bot_repo
 from app.db.database import AsyncSessionLocal
 
-async def get_test_types_for_dialog(dialog_manager, **kwargs) -> Dict[str, List[Dict[str, str]]]:
+async def main_getter(dialog_manager, **kwargs) -> Dict[str, bool]:
     """
     Получает и форматирует список тестов бота для использования в диалоге
     Args:
@@ -22,21 +22,22 @@ async def get_test_types_for_dialog(dialog_manager, **kwargs) -> Dict[str, List[
         # Получаем внутренний bot_id
         bot_id = await bot_repo.get_id_by_telegram_id(telegram_bot_id, session=session)
 
-        # Получаем только доступные тесты
-        test_types = await test_types_repo.get_available_for_user(
-            bot_id=bot_id,
+        is_admin = await user_repo.check_user_is_admin(
             user_id=user.id,
-            only_active=True,
+            bot_id=bot_id,
             session=session
         )
-    
-    if not test_types:
-        return {
-            "test_types": [],
-            "no_tests_text": "Нет доступных тестов для прохождения."
-        }
-    return {
-        "test_types": [
-            {"id": str(tt.id), "name": tt.name} for tt in test_types
-        ]
-    }
+
+    return {"is_admin": is_admin}
+
+def admin_flag_visible(data, widget, manager) -> bool:
+    """
+    Проверяет, является ли пользователь администратором
+    Args:
+        data: Данные виджета
+        widget: Виджет
+        manager: Менеджер диалога
+    Returns:
+        bool: True если пользователь администратор, иначе False
+    """
+    return data.get("is_admin", False)

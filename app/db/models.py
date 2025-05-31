@@ -1,4 +1,4 @@
-from sqlalchemy import BigInteger, Column, Integer, String, Text, Boolean, ForeignKey, DateTime, func, Table
+from sqlalchemy import BigInteger, Column, Integer, String, Text, Boolean, ForeignKey, DateTime, func
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm import DeclarativeBase
 
@@ -22,7 +22,6 @@ class TestType(BaseModel):
     allow_multiple_passes = Column(Boolean, default=True, nullable=False, comment="Можно ли проходить тест несколько раз")
     estimated_duration = Column(Integer, nullable=True, comment="Примерная продолжительность прохождения теста в минутах")
 
-    # Связь "один-ко-многим" с TestQuestion
     questions = relationship("TestQuestion", back_populates="test_type")
 
 
@@ -31,7 +30,6 @@ class TestQuestion(BaseModel):
 
     id = Column(Integer, primary_key=True)
     question_text = Column(Text, nullable=False)
-    # possible_answers = Column(Text)  # Можно хранить JSON
     question_type = Column(String(50), nullable=False)
     is_active = Column(Boolean, default=True)
     test_type_id = Column(Integer, ForeignKey("test_types.id"))
@@ -40,25 +38,29 @@ class TestQuestion(BaseModel):
     answers = relationship("TestAnswer", back_populates="question")
 
 
-user_bots = Table(
-    "user_bots",
-    BaseModel.metadata,
-    Column("user_id", Integer, ForeignKey("users.id"), primary_key=True),
-    Column("bot_id", Integer, ForeignKey("bot_tokens.id"), primary_key=True),
-    Column("is_admin", Boolean, default=False, comment="Является ли пользователь администратором")
-)
+class UserBot(BaseModel):
+    __tablename__ = "user_bots"
+
+    user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
+    bot_id = Column(Integer, ForeignKey("bot_tokens.id"), primary_key=True)
+    is_admin = Column(Boolean, default=False)
+
+    user = relationship("User", back_populates="user_bots")
+    bot = relationship("BotToken", back_populates="user_bots")
+
 
 class User(BaseModel):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True)
     name = Column(String(255))
+    last_name = Column(String(255))
     telegram_username = Column(String(100))
     telegram_id = Column(BigInteger, nullable=False, unique=True, comment="ID Telegram пользователя")
     is_active = Column(Boolean, default=True, comment="Активен ли пользователь")
     
     answers = relationship("TestUserAnswer", back_populates="user")
-    bots = relationship("BotToken", secondary=user_bots, back_populates="users")
+    user_bots = relationship("UserBot", back_populates="user")
 
 
 class TestUserAnswer(BaseModel):
@@ -85,7 +87,7 @@ class BotToken(BaseModel):
     is_active = Column(Boolean, default=True, comment="Активен ли бот")
     owner_name = Column(String(255), nullable=False, comment="ФИО владельца бота")
     owner_telegram_username = Column(String(100), nullable=True, comment="Никнейм владельца в Telegram")
-    users = relationship("User", secondary=user_bots, back_populates="bots")
+    user_bots = relationship("UserBot", back_populates="bot")
 
 class TestAnswer(BaseModel):
     __tablename__ = "test_answers"
@@ -93,7 +95,6 @@ class TestAnswer(BaseModel):
     id = Column(Integer, primary_key=True)
     question_id = Column(Integer, ForeignKey("test_questions.id"), nullable=False)
     text = Column(Text, nullable=False)
-    # is_correct = Column(Boolean, default=False)
     order = Column(Integer, default=0)
 
 

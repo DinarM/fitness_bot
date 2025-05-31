@@ -1,5 +1,3 @@
-
-
 from app.dialogs import states
 
 from aiogram.types import CallbackQuery

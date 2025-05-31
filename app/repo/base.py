@@ -1,7 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from functools import wraps
-from typing import Optional, Callable, Any, List
+from typing import Optional, Callable, Any, List, Dict
 from app.db.unit_of_work import UnitOfWork
 
 
@@ -94,3 +94,31 @@ class BaseRepo:
         
         result = await session.execute(stmt)
         return result.scalars().all()
+
+    @with_session
+    async def update(
+        self,
+        obj_id: int,
+        obj_in: Dict[str, Any],
+        session: AsyncSession
+    ) -> Optional[Any]:
+        """
+        Обновляет запись в базе данных
+        Args:
+            obj_id: ID записи
+            obj_in: Словарь с новыми данными
+            session: Сессия базы данных
+        Returns:
+            Optional[Any]: Обновленная запись или None, если не найдена
+        """
+        db_obj = await self.get(obj_id=obj_id, session=session)
+        if not db_obj:
+            return None
+            
+        for field, value in obj_in.items():
+            if hasattr(db_obj, field):
+                setattr(db_obj, field, value)
+                
+        await session.commit()
+        await session.refresh(db_obj)
+        return db_obj

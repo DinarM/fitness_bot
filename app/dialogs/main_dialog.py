@@ -2,7 +2,8 @@ from aiogram_dialog import Dialog, LaunchMode, Window
 from aiogram_dialog.widgets.kbd import Start, Row
 from aiogram_dialog.widgets.text import Const, Format
 
-from app.handlers.main_handlers import on_click_test_start
+from app.getters.main_getters import admin_flag_visible, main_getter
+# from app.handlers.main_handlers import on_click_test_start
 from app.dialogs import states
 
 
@@ -21,15 +22,22 @@ main_dialog = Dialog(
                     text=Const("📝 Тестирование"),
                     id="test",
                     state=states.Tests.MAIN,
-                    on_click=on_click_test_start
+                    # on_click=on_click_test_start
                 ),
                 Start(
                     text=Const("🏋️‍♂️ Тренировки"),
                     id="training",
                     state=states.Multiwidget.MAIN,  # или нужный state для тренировок
                 ),
+                Start(
+                    text=Const("🔐 Админка"),
+                    id="admin",
+                    state=states.Admin.MAIN,  # или нужный state для тренировок
+                    when=admin_flag_visible
+                ),
             ),
             state=states.Main.MAIN,
+            getter=main_getter,
             parse_mode="HTML",
         ),
         launch_mode=LaunchMode.ROOT,

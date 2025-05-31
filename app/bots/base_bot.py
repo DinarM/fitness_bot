@@ -10,6 +10,8 @@ from app.dialogs import states
 from app.dialogs.main_dialog import main_dialog
 from app.dialogs.select_test_dialog import test_dialog
 from app.dialogs.tests_flow_dialog import tests_dialog
+from app.dialogs.admin_dialog import admin_dialog
+from app.dialogs.admin_users_dialog import users_dialog
 from app.repo import user_repo, bot_repo
 from aiogram_dialog import DialogManager, ShowMode, StartMode, setup_dialogs
 from aiogram_dialog.api.exceptions import UnknownIntent
@@ -23,6 +25,8 @@ class BaseBot:
             main_dialog,
             test_dialog,
             tests_dialog,
+            admin_dialog,
+            users_dialog,
         )
 
     async def start(self, message: Message, dialog_manager: DialogManager):

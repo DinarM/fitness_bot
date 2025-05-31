@@ -1,5 +1,5 @@
 from sqlalchemy import select
-from app.db.models import User, user_bots
+from app.db.models import User, UserBot
 from app.repo import bot_token
 from app.repo.base import BaseRepo, with_session
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -31,27 +31,34 @@ class UserRepo(BaseRepo):
                 "telegram_id": telegram_id,
                 "telegram_username": telegram_data.get("username"),
                 "name": telegram_data.get("first_name"),
+                'last_name': telegram_data.get("last_name"),
             }
             user = await self.create(user_data, session=session)
+        else:
+            # Проверяем, изменились ли данные пользователя
+            update_data = {}
+            if user.telegram_username != telegram_data.get("username"):
+                update_data["telegram_username"] = telegram_data.get("username")
+            if user.name != telegram_data.get("first_name"):
+                update_data["name"] = telegram_data.get("first_name")
+            if user.last_name != telegram_data.get("last_name"):
+                update_data["last_name"] = telegram_data.get("last_name")
+                
+            if update_data:
+                user = await self.update(user.id, update_data, session=session)
 
         try:
             bot_id = await bot_token.bot_repo.get_id_by_telegram_id(telegram_bot_id, session=session)
-            
-            # Проверяем существование связи через прямую проверку в таблице user_bots
-            link_exists = await session.execute(
-                select(user_bots).where(
-                    user_bots.c.user_id == user.id,
-                    user_bots.c.bot_id == bot_id
+
+            # ORM-проверка существования связи и вставка через UserBot
+            existing_link = await session.execute(
+                select(UserBot).where(
+                    UserBot.user_id == user.id,
+                    UserBot.bot_id == bot_id
                 )
             )
-            
-            if not link_exists.scalar_one_or_none():
-                await session.execute(
-                    user_bots.insert().values(
-                        user_id=user.id,
-                        bot_id=bot_id
-                    )
-                )
+            if not existing_link.scalar_one_or_none():
+                session.add(UserBot(user_id=user.id, bot_id=bot_id))
                 await session.commit()
         except ValueError as e:
             await session.rollback()
@@ -74,5 +81,51 @@ class UserRepo(BaseRepo):
             Optional[User]: Пользователь или None, если не найден
         """
         return await self.get_by_field(session=session, telegram_id=telegram_id)
+    
+    @with_session
+    async def check_user_is_admin(
+        self, 
+        user_id: int, 
+        bot_id: int, 
+        session: Optional[AsyncSession] = None
+    ) -> bool:
+        """
+        Проверяет, является ли пользователь администратором бота
+        Args:
+            user_id: ID пользователя
+            bot_id: ID бота
+            session: Опциональная существующая сессия
+        Returns:
+            bool: True если пользователь администратор, иначе False
+        """
+        result = await session.execute(
+            select(UserBot.is_admin).where(
+                UserBot.user_id == user_id,
+                UserBot.bot_id == bot_id
+            )
+        )
+        return result.scalar_one_or_none() is True
+    
+    @with_session
+    async def get_bot_users(
+        self,
+        bot_id,
+        session: Optional[AsyncSession] = None
+    ) -> list[tuple[User, bool]]:
+        """
+        Получает список пользователей бота с их правами администратора
+        Args:
+            bot_id: ID бота
+            session: Опциональная существующая сессия
+        Returns:
+            list[tuple[User, bool]]: Список кортежей (пользователь, флаг админа)
+        """
+        result = await session.execute(
+            select(User, UserBot.is_admin)
+            .join(UserBot, User.id == UserBot.user_id)
+            .where(UserBot.bot_id == bot_id)
+        )
+        return result.all()
 
+ 
 user_repo = UserRepo(User)
